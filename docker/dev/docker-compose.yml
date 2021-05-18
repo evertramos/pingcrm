@@ -1,0 +1,95 @@
+version: '3'
+services:
+    app:
+        build:
+#            context: ./docker/dev
+            context: .
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        env_file:
+            - ./../../.env
+        image: pingcrm
+        container_name: app
+        ports:
+            - '${APP_PORT:-80}:80'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - './../../:/var/www/html'
+        networks:
+            - dev-net
+        depends_on:
+            - mysql
+#            - redis
+#            - selenium
+    mysql:
+        image: 'mysql:8.0'
+        container_name: mysql
+        env_file:
+          - ./../../.env
+        ports:
+            - '${FORWARD_DB_PORT:-3306}:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-empty}'
+#            MYSQL_ROOT_PASSWORD: 'vai....'
+            MYSQL_DATABASE: '${DB_DATABASE}'
+#            MYSQL_USER: '${DB_USERNAME}'
+#            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        volumes:
+            - 'marinermysql:/var/lib/mysql'
+#            - './../mysql:/var/lib/mysql'
+        networks:
+            - dev-net
+        healthcheck:
+          test: ["CMD", "mysqladmin", "ping"]
+        cap_add:
+          - SYS_NICE  # CAP_SYS_NICE
+#    redis:
+#        image: 'redis:alpine'
+#        ports:
+#            - '${FORWARD_REDIS_PORT:-6379}:6379'
+#        volumes:
+#            - 'sailredis:/data'
+#        networks:
+#            - dev-net
+#        healthcheck:
+#          test: ["CMD", "redis-cli", "ping"]
+#    meilisearch:
+#        image: 'getmeili/meilisearch:latest'
+#        ports:
+#            - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
+#        volumes:
+#            - 'sailmeilisearch:/data.ms'
+#        networks:
+#            - dev-net
+    mailhog:
+        image: 'mailhog/mailhog:latest'
+        container_name: mailhog
+        ports:
+            - '${FORWARD_MAILHOG_PORT:-1025}:1025'
+            - '${FORWARD_MAILHOG_DASHBOARD_PORT:-8025}:8025'
+        networks:
+            - dev-net
+#    selenium:
+#       image: 'selenium/standalone-chrome'
+#       volumes:
+#            - '/dev/shm:/dev/shm'
+#       networks:
+#           - dev-net
+networks:
+    dev-net:
+        driver: bridge
+        ipam:
+          driver: default
+          config:
+            - subnet: "172.240.0.0/24"
+volumes:
+    marinermysql:
+        driver: local
+#    sailredis:
+#        driver: local
+#    sailmeilisearch:
+#        driver: local
